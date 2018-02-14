@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CudaCompile Include="mcxyzCUDA.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="sample_input">
+      <UniqueIdentifier>{91ab11c3-0838-4e45-ab06-d9704e757de5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="skinvessel_F.bin">
+      <Filter>sample_input</Filter>
+    </None>
+    <None Include="skinvessel_H.mci">
+      <Filter>sample_input</Filter>
+    </None>
+    <None Include="skinvessel_props.m">
+      <Filter>sample_input</Filter>
+    </None>
+    <None Include="skinvessel_T.bin">
+      <Filter>sample_input</Filter>
+    </None>
+  </ItemGroup>
+</Project>
