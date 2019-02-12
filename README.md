@@ -5,6 +5,6 @@ GitHub repository: https://github.com/aledoronin/mcxyzCUDA
 
 Online Monte Carlo Apps: http://www.lighttransport.net/
 
-Documentation: https://omlc.org/software/mc/mcxyz/index.html OR 
+Documentation: https://omlc.org/software/mc/mcxyz/index.html
 
 GitHub Pages: https://aledoronin.github.io/mcxyzCUDA/
