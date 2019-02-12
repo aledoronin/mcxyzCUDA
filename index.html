@@ -1,0 +1,578 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>mcxyz.c</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<h1>mcxyz.c</h1>
+
+<dl>
+<dt>Version June 1, 2017.</dt>
+<dd><font color="red">I would appreciate any <a href="https://omlc.org/~jacquess/">feedback</a></font>. 
+</dd><dt>Version Feb. 8, 2017.</dt>
+<dt>Version Oct. 10, 2014.</dt><dd>
+Thanks to Angelina (Angelina Ryzhov) and Baki (Reheman Baikejiang) for
+feedback
+</dd><dt>Version March 4, 2013.</dt><dd>
+Thanks to Marleen Keijzer, Scott Prahl, Lihong Wang and Ting Li, who
+have all contributed to the evolution of mcxyz.c.
+</dd></dl>
+
+<h2> Overview</h2>
+<p>
+The program <font color="red"><u>mcxyz.c</u></font> is a computer
+simulation of the distribution of light within a complex tissue that
+consists of many different types of tissues, each with its own optical
+properties.  The program uses the Monte Carlo method of sampling
+probabilities for the stepsize of photon movement between scattering
+events and for the angles (θ,ψ) of photon scattering.
+</p>
+
+<p>All boundary conditions are matched. Does not yet handle mismatched
+boundaries.
+</p>
+
+<p>
+<font color="red"><u>mcxyz.c</u></font> is written in ANSI standard C,
+and is easily compiled by any standard compiler. It reads input files
+(<font color="red"><u>myname_T.bin</u>, <u>myname_H.mci</u></font>)
+created by a MATLAB program <font color="red"><u>maketissue.m</u></font>, using a standard format.
+Therefore, other programs can also prepare the input files.
+</p>
+
+<p>The 3D Monte Carlo generates an output file of relative fluence rate,
+<font color="red"><u>F(y,x,z)</u></font> [W/cm<sup>2</sup> per W
+delivered] or [1/cm<sup>2</sup>]. The spatial distribution of absorption
+is obtained by the product of the fluence rate and the absorption
+coefficient: A(y,x,z) [1/cm<sup>3</sup>] = F(y,x,z) x muav(T(y,x,z),
+where muav(i) [cm<sup>-1</sup>] is the absorption coefficient of the
+i<sup>th</sup> tissue type (the v is for voxel).
+</p>
+
+<h2>Figure 1</h2>
+<p> An example showing the results of a
+simulation that includes air, epidermis, dermis, and a blood vessel.
+<i>The tissue list  also includes skull, gray matter and white
+matter (brain) but these tissue types are not used in this
+example.</i> <font color="green">Green 532-nm</font> light is delivered
+to the air/epidermis surface as a uniform-field 0.6-cm-diameter circular
+collimated beam. A 0.1-cm-diameter blood vessel is located at x,z =
+0,0.0500 cm, and runs along the y axis. In this simulation, there are
+200 bins in x,y,z, i.e., T(200,200,200) is used to generate
+F(200,200,200). The program was run for 10 min, launching 825,219
+photons.
+</p>
+
+<h3>Figure 1A</h3>
+<p>The tissue types T(z,x)@y are shown. The red lines show the photon paths
+if there were no scattering or absorption. The blood vessel extends
+along the y axis, and its cross-section is seen.</p>
+
+<a href="https://omlc.org/software/mc/mcxyz/skinvessel_tissue.jpg"><img src="mcxyz.c_files/skinvessel_tissue.jpg" alt="skin vessel tissue" width="100%"></a>
+
+<h3>Figure 1B</h3>
+<p>
+The relative energy deposition A(z,x)@y [1/cm<sup>3</sup> =
+W/cm<sup>3</sup>/W.delivered] is shown. The light delivered through the
+water is not shown; light is delivered to tissue surface as z = 0.0100.
+Deposition in water above skin is due to escaping light only. (
+log<sub>10</sub>(A [cm<sup>-3</sup>]) )</p>
+
+<a href="https://omlc.org/software/mc/mcxyz/skinvessel_Azx.jpg"><img src="mcxyz.c_files/skinvessel_Azx.jpg" alt="absorption" width="100%"></a>
+
+<h3>Figure 1C</h3>
+<p>
+The relative fluence rate φ(z,x)@y [1/cm<sup>2</sup>] is shown. The
+fluence rate of light escaping out of the skin at the epidermal surface
+into the air is also shown. ( log<sub>10</sub>(φ [cm<sup>-2</sup>])
+)</p>
+
+<a href="https://omlc.org/software/mc/mcxyz/skinvessel_Fzx.jpg"><img src="mcxyz.c_files/skinvessel_Fzx.jpg" alt="skin vessel" width="100%"></a>/p&gt;
+
+<h3>Figure 1D</h3>
+<p>
+The relative fluence rate φ(z,u)@x [1/cm<sup>2</sup>] is shown,
+where x equals the middle of the blood vessel, which appears as the
+horizontal bar of black at z = 0.4 cm due to strong absorption by blood.
+( log<sub>10</sub>(φ [cm<sup>-2</sup>]) ).</p>
+
+<a href="https://omlc.org/software/mc/mcxyz/skinvessel_Fzy.jpg"><img src="mcxyz.c_files/skinvessel_Fzy.jpg" alt="fluence rate" width="100%"></a>
+
+<h2>In the following sections, you will learn</h2>
+<ol>
+<li>how to use <font color="red">makeTissueList.m</font> (MATLAB) to
+create a library of tissue optical properties
+</li><li>how to use <font color="red">maketissue.m</font> (MATLAB) to create
+the inputfiles (<font color="red"><u>myname_T.bin</u>,
+<u>myname_H.mci</u></font>) for use by mcxyz.c
+</li><li>how to use <font color="red">mcxyz.c</font>
+</li><li>how to use <font color="red">lookmcxyz.m</font> (MATLAB) to look at
+the results.
+</li></ol>
+
+<p>You can download a .zip file containing the 4 programs listed above,
+and supporting files, and the example simulation of Figure 1: <a href="https://omlc.org/software/mc/mcxyz/mcxyz_1jun2017.zip">mcxyz_1jun2017.zip</a>.  The file
+contains:</p>
+<table>
+<tbody><tr><td>3372 bytes</td><td>makeTissueList.m</td></tr>
+<tr><td>7712 bytes</td><td>maketissue.m</td></tr>
+<tr><td>33925 bytes</td><td>mcxyz.c</td></tr>
+<tr><td>6035 bytes</td><td>lookmcxyz.m</td></tr>
+<tr><td>and supporting files...</td></tr>
+<tr><td>32000000 bytes</td><td>skinvessel_F.bin</td></tr>
+<tr><td>8000000 bytes</td><td>skinvessel_T.bin</td></tr>
+<tr><td>342 bytes</td><td>skinvessel_H.mci</td></tr>
+<tr><td>494 bytes</td><td>skinvessel_props.m</td></tr>
+<tr><td>28191 bytes</td><td>spectralLIB.mat</td></tr>
+<tr><td>1261 bytes</td><td>makec2f.m</td></tr>
+<tr><td>815 bytes</td><td>makecmap.m</td></tr>
+<tr><td>931 bytes</td><td>reportHmci.m</td></tr>
+<tr><td>1125 bytes</td><td>savepic.m</td></tr>
+<tr><td>259847 bytes</td><td>skinvessel_tissue.jpg</td></tr>
+<tr><td>310731 bytes</td><td>skinvessel_Azx.jpg</td></tr>
+<tr><td>540763 bytes</td><td>skinvessel_Fzx.jpg</td></tr>
+<tr><td>600543 bytes</td><td>skinvessel_Fzy.jpg</td></tr>
+</tbody></table>
+
+<p>
+Finally, some example simulations will be presented to illustrate how to
+adjust simulations.
+</p>
+
+
+<hr>
+<h2>How to use makeTissueList.m to create a library of tissue optical
+properties</h2>
+
+<p>To create a library of tissue types, with the associated tissue
+optical properties, the file <font color="red">spectralLIB.mat</font> is
+used. This file contains the optical absorption properties,
+μ<sub>a</sub> [cm<sup>-1</sup>], of
+</p><ul>
+<li>oxygenated whole blood (150 g hemoglobin/liter or
+2.33x10<sup>-3</sup> M)
+</li><li>deoxygenated whole blood
+</li><li>water
+</li><li>interior of typical cutaneous melanosome
+</li><li>fat
+</li></ul>
+as functions of wavelength from 300 to 1000 nm. You can download <font color="red">spectralLIB.mat</font> with the mcxyz.zip file. You can view a
+text version of the file here: <a href="https://omlc.org/software/mc/mcxyz/spectralLIB.dat">spectralLIB.dat</a>.
+
+<p>To create the scattering properties, a generic function is used:</p>
+<p align="center">
+μ<sub>s</sub>' = μ<sub>s.500nm</sub>'
+(f<sub>Rayleigh</sub>(λ/500nm)<sup>-4</sup> +
+f<sub>Mie</sub>(λ/500nm)<sup>-bMie</sup>)
+</p>
+<p>where 
+</p><ul>
+<li> μ<sub>s.500nm</sub>' = reduced scattering coeff. at 500 nm
+</li><li> f<sub>Rayleigh</sub> = fraction of Rayleigh scattering at 500 nm
+</li><li> f<sub>Mie</sub> = fraction of Mie scattering at 500 nm
+</li><li> λ = wavelength [nm]
+</li><li> b<sub>Mie</sub> = scattering power of Mie scattering
+</li></ul>
+
+<p>Each tissue type is specified as follows, using the 4<sup>th</sup>
+tissue type, dermis, as an example:<br>
+</p><pre style="overflow:auto;"><font color="green">
+j = 4;
+tissue(j).name = 'dermis';
+B       = 0.002;    % blood volume fraction
+S       = 0.67;     % oxygen saturation of hemoglobin
+W       = 0.65;     % water volume fraction
+F       = 0.02;     % fat volume fraction
+M       = 0;        % volume fraction of melanosomes
+musp500 = 42.4;     % reduced scattering coeff. at 500 nm
+[cm<sup>-1</sup>]
+fray    = 0.62;     % fraction of Rayleigh scattering at 500 nm
+fmie    = 1-fray;   % fraction of Mie scattering at 500 nm
+bmie    = 1.0;      % scatter power for mie scattering
+X       = [B*S B*(1-S) W F M]'; 
+                    % [oxyBlood deoxyBlood Water Fat Melansomes]'
+musp    = musp500*(fray*(nm/500).^-4 + fmie*(nm/500).^-bmie); 
+                    %reduced scattering
+gg      = 0.90;
+tissue(j).mua = MU*X;       % absorption coefficient
+tissue(j).mus = musp/(1-gg);    % scattering coefficient
+tissue(j).g   = gg;     % anisotropy of scattering
+</font>
+</pre>
+The above calculates the absorption (tissue(j).mua), the scattering
+(tissue(j).mus) and the anisotropy of scattering (tissue(j).g)) at the
+wavelength of interest. By adjusting <font color="red">B,S,W,F and
+M</font>, the absorption properties are specified. By adjusting <font color="red">musp500, fray, bmie</font>, the scattering properties are
+specified.
+<p></p>
+
+<p>The function call <font color="red">tissue = makeTissueList(nm)</font>,
+where nm specifies the wavelength of interest in [nm], will yield a data
+structure called <font color="red">tissue</font> with the structure:
+</p><ul>
+<li>tissue(j).name
+</li><li>tissue(j).mua
+</li><li>tissue(j).mus
+</li><li>tissue(j).g
+</li><li>tissue(j).nm
+</li></ul>
+where j selects the j<sup>th</sup> tissue type in the library. <font size="1">The parameter tissue(j).nm is the same single wavelength for all
+tissues, but is included for convenient recall.</font>
+<p></p>
+
+<p>
+In the example <font color="red">makeTissueList(nm)</font> presented here,
+9 tissue types are specified:
+</p><ol>
+<li>air
+</li><li>water
+</li><li>blood
+</li><li>dermis
+</li><li>epidermis
+</li><li>fat or lipid
+</li><li>skull
+</li><li>gray matter (brain)
+</li><li>white matter (brain)
+</li></ol>
+<p></p>
+
+<p>The USER can create a variety of makeTissueList.m files, each with a
+different assortment of tissue types.<br>
+<font color="red">CAUTION: The tissue parameters chosen for the above
+tissue types are approximations, which create approximate optical
+properties at the chosen wavelength. The USER is responsible for
+improving on the choices of tissue parameters, so as to get more
+accurate optical properties. </font>
+</p>
+
+<p>
+For both air and water, a moderate scattering coefficient is specified
+so that the photon steps through the tissue, but the value of g is set
+to 1.0 so there is not photon deflection.  Also a very very low
+absorption coefficient is specified (eg., μ<sub>a</sub> = 0.0001
+cm<sup>-1</sup> for air, or the absorption of water at the chosen
+wavelength).  Hence, the photon will step through air or water, and
+deposit a very small amount of photon weight in the voxels, thereby
+specifying its pathlength spent in the air or water. But the energy lost
+in the air is negligible, so it does not significantly influence the
+distribution of light. The absorption in water depends on the chosen
+wavelength. At the end of the program (<font size="1">discussed in <b>How
+to use mcxy.c</b>, below</font>), the fluence rate φ is calculated
+by dividing the deposited energy by the very small μ<sub>a</sub>
+which recovers the φ in the air and water. 
+</p>
+
+<p>View listing of <font color="red">makeTissueList.m</font>: <a href="https://omlc.org/software/mc/mcxyz/makeTissueList.m">makeTissueList.m</a></p>
+
+<hr>
+<h2>How to use maketissue.m to create a tissue</h2>
+<p>
+The program <font color="red">maketissue.m</font> uses the tissue library
+<font color="red">tissue</font> created by <font color="red">makeTissueList.m</font>.  The program creates a complex
+tissue, according to the user's adjustments of the following parameters
+in the program:
+<font color="green">
+</font></p><pre style="overflow:auto;"><font color="green">%%% USER CHOICES %%%%%%%% &lt;-------- You must set these parameters ------
+SAVEON      = 1;        % 1 = save myname_T.bin, myname_H.mci 
+                        % 0 = don't save. Just check the program.
+                        % 
+myname      = 'skinvessel';% name for files: myname_T.bin, myname_H.mci 
+
+time_min    = 10;       % time duration of the simulation [min]
+&lt;----- run time -----
+nm          = 532;      % desired wavelength of simulation
+Nbins       = 200;      % # of bins in each dimension of cube 
+binsize     = 0.0005;   % size of each bin, eg. [cm] or [mm]
+
+% Set Monte Carlo launch flags
+mcflag      = 0;        % launch: 0 = uniform beam, 1 = Gaussian, 2 =
+isotropic pt. 
+                        % 3 = rectangular beam (use xfocus,yfocus for
+                        % x,y halfwidths)
+launchflag  = 0;        % 0 = let mcxyz.c calculate launch trajectory
+                        % 1 = manually set launch vector.
+boundaryflag = 2;       % 0 = no boundaries, 1 = escape at boundaries
+                        % 2 = escape at surface only. No x, y, bottom z
+                        % boundaries
+                        % 
+% Sets position of source
+xs          = 0;        % x of source
+ys          = 0;        % y of source
+zs          = 0.0101;   % z of source
+
+% Set position of focus, so mcxyz can calculate launch trajectory
+xfocus      = 0;        % set x,position of focus
+yfocus      = 0;        % set y,position of focus
+zfocus      = inf;      % set z,position of focus (=inf for collimated
+beam)
+
+% only used if mcflag == 0 or 1 or 3 (not 2=isotropic pt.)
+radius      = 0.0300;   % 1/e radius of beam at tissue surface
+waist       = 0.0300;   % 1/e radius of beam at focus
+
+% only used if launchflag == 1 (manually set launch trajectory):
+ux0         = 0.7;      % trajectory projected onto x axis
+uy0         = 0.4;      % trajectory projected onto y axis
+uz0         = sqrt(1 - ux0^2 - uy0^2); % such that ux^2 + uy^2 + uz^2 = 1
+%%%%%%%%%%%%%%%%%%%%%%%%%
+</font></pre><font color="green">
+</font>
+
+The program then enters the section
+<font color="green">
+<pre>    %%%%%%%%%%
+    % Prepare Monte Carlo
+    %     %%%
+</pre>
+</font>
+which sets up the parameters for the Monte Carlo simulation. (<a href="https://omlc.org/software/mc/mcxyz/maketissue.m">View the original code</a>.)<p></p>
+
+<p>
+The user then creates the desired complex tissue in the next section:
+<font color="green">
+</font></p><pre style="overflow:auto;"><font color="green">%%%%%%
+% CREATE TISSUE STRUCTURE T(y,x,z)
+%   Create T(y,x,z) by specifying a tissue type (an integer)
+%   for each voxel in T.
+% %
+%   Note: one need not use every tissue type in the tissue list.
+%   The tissue list is a library of possible tissue types.
+% 
+T = double(zeros(Ny,Nx,Nz)); 
+
+T = T + 4;      % fill background with skin (dermis)
+
+zsurf = 0.0100;  % position of air/skin surface
+
+for iz=1:Nz % for every depth z(iz)
+
+    % air
+    if iz&lt;=round(zsurf/dz)
+        T(:,:,iz) = 2; 
+    end
+
+    % epidermis (60 um thick)
+    if iz&gt;round(zsurf/dz) &amp; iz&lt;=round((zsurf+0.0060)/dz)
+        T(:,:,iz) = 5; 
+    end
+
+    % blood vessel @ xc, zc, radius, oriented along y axis
+    xc      = 0;            % [cm], center of blood vessel
+    zc      = Nz/2*dz;      % [cm], center of blood vessel
+    vesselradius  = 0.0100;         % blood vessel radius [cm]
+    for ix=1:Nx
+            xd = x(ix) - xc;    % vessel, x distance from vessel center
+            zd = z(iz) - zc;    % vessel, z distance from vessel
+center                
+            r  = sqrt(xd^2 + zd^2); % r from vessel center
+            if (r&lt;=vesselradius)        % if r is within vessel
+                T(:,ix,iz) = 3; % blood
+            end
+
+    end %ix
+    
+end % iz
+</font></pre><font color="green">
+</font>
+
+In the above, the user fills the backround with dermis, specifies the
+position of the air/skin surface (zsurf), then steps through each z(iz)
+depth position and determines if in air or epidermis, assigning the
+appropriate integer pointer value to all x,y elements at the z(iz) depth
+in the tissue array T(iy,ix,iz). Also, the presence of the blood vessel
+at depth z(iz) for each of the x,y positions is tested, based on the
+vessel radius being a set value (vesselradius). 
+<p></p>
+
+<p>
+When ready to save the results to a binary file for <font color="red">mcxyz.c</font> to use, the array T(iy,ix,iz) is reshaped into
+a linear array of integer values, v(i), by the command
+<font color="green">
+</font></p><pre style="overflow:auto;"><font color="green">    % convert T to linear array of integer values, v(i)i = 0;
+    v = uint8(reshape(T,Ny*Nx*Nz,1));
+</font></pre><font color="green">
+</font>
+and this array is saved as a binary file, using the user's choice
+myname:
+<font color="green">
+<pre style="overflow:auto;">    %% write myname_T.bin file
+    filename = sprintf('%s_T.bin',myname);
+    disp(['create ' filename])
+    fid = fopen(filename,'wb');
+    fwrite(fid,v,'uint8');
+    fclose(fid);
+</pre>
+</font>
+The program also saves <font color="red">myname_H.mci</font> which lists
+the simulation parameters and tissue list of optical properties for use
+by <font color="red">mcxyz.c</font>.  The program also generates a figure
+similar to <font color="blue">Figure 1A</font> that shows the structure. 
+<p></p>
+
+<p>View listing of <font color="red">maketissue.m</font>: <a href="https://omlc.org/software/mc/mcxyz/maketissue.m">maketissue.m</a></p>
+
+<p>
+</p>
+
+<hr>
+<h2>How to use mcxyz.c</h2>
+<p>In Unix, to compile mcxyz.c is simply
+<font color="green">
+</font></p><pre><font color="green">    cc -o mcxyz mcxyz.c
+</font></pre><font color="green">
+</font>
+which saves the executable version as <font color="red">mcxyz</font>.<p></p>
+
+<p>
+From a UNIX command line, the program is executed by the command
+<font color="green">
+</font></p><pre><font color="green">    mcxyz myname
+</font></pre><font color="green">
+</font>
+where <font color="red">myname</font> is the name chosen by the user when
+creating the tissue using <font color="red">maketissue.m</font>. For
+example, <font color="blue">Figure 1</font> used myname = "skinvessel",
+and mcxyz used the files "skinvessel_H.mci" and "skinvessel_T.bin" to
+generate "skinvessel_F.bin".
+<p></p>
+
+<p>As the program runs, it will look like this:
+<font color="green">
+</font></p><pre style="overflow:auto;"><font color="green">name = skinvessel
+time_min = 10.00 min
+Nx = 200, dx = 0.0005 [cm]
+Ny = 200, dy = 0.0005 [cm]
+Nz = 200, dz = 0.0005 [cm]
+xs = 0.0000 [cm]
+ys = 0.0000 [cm]
+zs = 0.0101 [cm]
+mcflag = 0
+launching uniform flat-field beam
+xfocus = 0.0000 [cm]
+yfocus = 0.0000 [cm]
+zfocus = 1.00e+12 [cm]
+Launchflag OFF, so program calculates launch angles.
+radius = 0.0300 [cm]
+waist  = 0.0100 [cm]
+boundaryflag = 2, so escape at surface only.
+# of tissues available, Nt = 9
+muav[1] = 0.0001 [cm^-1]
+musv[1] = 1.0000 [cm^-1]
+  gv[1] = 1.0000 [--]
+
+muav[2] = 0.0004 [cm^-1]
+musv[2] = 10.0000 [cm^-1]
+  gv[2] = 1.0000 [--]
+
+muav[3] = 230.5427 [cm^-1]
+musv[3] = 93.9850 [cm^-1]
+  gv[3] = 0.9000 [--]
+
+muav[4] = 0.4585 [cm^-1]
+musv[4] = 356.5406 [cm^-1]
+  gv[4] = 0.9000 [--]
+
+muav[5] = 16.5724 [cm^-1]
+musv[5] = 375.9398 [cm^-1]
+  gv[5] = 0.9000 [--]
+
+muav[6] = 0.1154 [cm^-1]
+musv[6] = 281.9549 [cm^-1]
+  gv[6] = 0.9000 [--]
+
+muav[7] = 2.3057 [cm^-1]
+musv[7] = 181.5859 [cm^-1]
+  gv[7] = 0.9000 [--]
+
+muav[8] = 2.3057 [cm^-1]
+musv[8] = 181.5859 [cm^-1]
+  gv[8] = 0.9000 [--]
+
+muav[9] = 1.0000 [cm^-1]
+musv[9] = 100.0000 [cm^-1]
+  gv[9] = 0.9000 [--]
+
+central axial profile of tissue types:
+222222222222222222225555555555554444444444444444444444444444444444444444
+44444444333333333
+333333333333333333333333333333444444444444444444444444444444444444444444
+44444444444444444
+4444444444444444444444
+
+Tue May 30 09:35:02 2017
+
+------------- Begin Monte Carlo -------------
+skinvessel
+requesting 10.0 min
+Nphotons = 825219 for simulation time = 10.00 min
+1% done
+2% done
+3% done
+4% done
+5% done
+6% done
+7% done
+8% done
+9% done
+10% done
+20% done
+30% done
+40% done
+50% done
+60% done
+70% done
+80% done
+90% done
+91% done
+92% done
+93% done
+94% done
+95% done
+96% done
+97% done
+98% done
+99% done
+100% done
+------------------------------------------------------
+Elapsed Time for 8.252e+05 photons = 10.437 min
+7.91e+04 photons per minute
+saving skinvessel_F.bin
+------------------------------------------------------
+Tue May 30 09:45:29 2017
+</font></pre><font color="green">
+</font>
+
+First, the simulation parameters and tissue optical properties are
+listed. Then the tissue types along th central axis versus depth are
+listed as numerals, which provides a quick visual check on the tissue
+structure.  Then the Monte Carlo simulation begins, giving the % of task
+completed throughout the run. When finished, the file <font color="red">myname_F.bin</font> is saved.
+<p></p>
+
+<hr>
+<h2>How to use lookmcxyz.m to look at results</h2>
+
+<p>
+Now that the simulation is completed, the function <font color="red">lookmcxyz.m</font> will view the results.  In MATLAB, assign
+the prefix name of our files, eg., "skinvessel", to the variable
+"myname". Then simply type the command <font color="red">lookmcxyz.m</font>:
+<font color="green">
+</font></p><pre><font color="green">    myname = "skinvessel";
+    lookmcxyz
+</font></pre><font color="green">
+</font>
+and in this case the program will load the files <font color="red">skinvessel_T.bin</font> and <font color="red">skinvessel_H.mci</font>, and prepare the 3 figures in <font color="blue">Figures 1A,B,C,D</font>.
+<p></p>
+
+
+
+
+
+
+
+
+
+
+</body></html>
