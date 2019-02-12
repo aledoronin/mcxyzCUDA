@@ -8,7 +8,7 @@
 *  Ting LI
 *	Oregon Health & Science University
 *   CUDA version by
-*	Alexander Doronin (2015)
+*	Alexander Doronin (https://github.com/aledoronin)
 *
 *
 *  USAGE   mcxyz myname
